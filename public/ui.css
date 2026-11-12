@@ -1,0 +1,73 @@
+/* Tacto · estilos compartidos (teléfono y experiencia). Sin build: CSS puro con tokens. */
+:root {
+  color-scheme: dark;
+  /* color */
+  --coffee: #481f09;
+  --cream: #ffe6a6;
+  --coffee-rgb: 72, 31, 9;
+  --cream-rgb: 255, 230, 166;
+  --bg: var(--coffee);
+  --bg-2: var(--coffee);
+  --card: var(--coffee);
+  --card-2: var(--coffee);
+  --line: rgba(var(--cream-rgb), .24);
+  --line-2: rgba(var(--cream-rgb), .48);
+  --fg: var(--cream);
+  --mut: rgba(var(--cream-rgb), .72);
+  --vio: var(--cream);
+  --vio-2: var(--cream);
+  --neo: var(--cream);
+  --neo-ink: var(--coffee);
+  --ok: var(--cream);
+  --warn: var(--cream);
+  --err: var(--cream);
+  /* forma */
+  --r-s: 8px; --r-m: 12px; --r-l: 16px;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px;
+  --ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--cream);
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --ease: 160ms cubic-bezier(.2, .8, .2, 1);
+}
+
+@font-face { font-family: "Geist Light"; src: url("Geist-Light.ttf") format("truetype"); font-style: normal; font-weight: 300; font-display: swap; }
+@font-face { font-family: "Geist Bold"; src: url("Geist-Bold.ttf") format("truetype"); font-style: normal; font-weight: 700; font-display: swap; }
+@font-face { font-family: "Exo2 Bold"; src: url("Exo2-Bold.ttf") format("truetype"); font-style: normal; font-weight: 700; font-display: swap; }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 14px/1.45 "Geist Light", sans-serif; font-weight: 300; -webkit-font-smoothing: antialiased; }
+body * { font-family: "Geist Light", sans-serif; font-weight: 300; }
+[hidden] { display: none !important; }
+
+h1, h2 { margin: 0; }
+h1 { font-size: 18px; letter-spacing: .04em; font-weight: 700; }
+h1 span, header b span { color: var(--neo); font-weight: 600; }
+h2 { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--mut); font-weight: 600; margin-bottom: var(--sp-2); }
+
+/* controles */
+button, select, input { font: inherit; color: var(--fg); background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-s); padding: 6px 10px; min-height: 32px; transition: border-color var(--ease), background var(--ease), box-shadow var(--ease), transform var(--ease); }
+button, select, input[type=checkbox], input[type=range], input[type=file], label, summary { cursor: pointer; }
+button { font-weight: 500; }
+button:hover, select:hover, input:hover { border-color: var(--line-2); }
+button:hover { background: var(--card-2); }
+button:active { transform: translateY(1px); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+button.primary { background: var(--neo); color: var(--neo-ink); border-color: var(--neo); font-weight: 700; }
+button.primary:hover { background: rgba(var(--cream-rgb), .88); border-color: var(--cream); }
+:focus-visible { outline: none; box-shadow: var(--ring); }
+input[type=checkbox] { accent-color: var(--cream); min-height: 0; width: 16px; height: 16px; padding: 0; }
+input[type=range] { accent-color: var(--cream); padding: 0; min-height: 0; border: 0; background: transparent; }
+input[type=number] { width: 72px; font-variant-numeric: tabular-nums; }
+input[type=file] { font-size: 12px; }
+input[type=file]::file-selector-button { font: inherit; color: var(--fg); background: var(--card-2); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; margin-right: 8px; cursor: pointer; }
+select { max-width: 100%; text-overflow: ellipsis; }
+label { color: var(--mut); }
+
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-l); padding: var(--sp-4); }
+.msg { color: var(--err); font-size: 13px; min-height: 1.3em; }
+
+/* estado de conexión: color + texto (nunca solo color) */
+.dot { color: var(--mut); font-weight: 600; white-space: nowrap; }
+.dot.on { color: var(--ok); } .dot.warn { color: var(--warn); }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }

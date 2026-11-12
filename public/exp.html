@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>La estática de la nostalgia · experiencia</title>
+<link rel="stylesheet" href="ui.css">
+<style>
+  @font-face { font-family: "VolumeFont"; src: url("Font.ttf") format("truetype"); font-display: swap; }
+  body { display: flex; flex-direction: column; }
+  header { display: flex; align-items: center; gap: var(--sp-3); padding: 10px var(--sp-4); border-bottom: 1px solid var(--line); flex-wrap: wrap; background: linear-gradient(rgba(var(--coffee-rgb), .88), var(--bg)); }
+  header b { letter-spacing: .1em; font-weight: 700; }
+  header .sp { flex: 1; }
+  header label { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
+  #brokerInfo, #rtt { color: var(--mut); font-size: 12px; font-variant-numeric: tabular-nums; }
+  #audioBtn { display: none; }
+  #audioCard, #imageSources { display: none; }
+  main { flex: 1; min-height: 0; display: grid; grid-template-columns: 250px minmax(0, 1fr); }
+  aside, section { min-height: 0; overflow: auto; padding: var(--sp-3) var(--sp-4); scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; }
+  aside#monitor { border-right: 1px solid var(--line); } aside#panel { display: none; }
+  /* monitor de entradas */
+  .grp { margin-bottom: var(--sp-2); } .grp > summary { cursor: pointer; color: var(--mut); font-size: 12px; font-weight: 600; margin: 6px 0; padding: 2px 0; list-style-position: inside; }
+  .grp > summary:hover { color: var(--fg); }
+  .ch { display: grid; grid-template-columns: 1fr 56px; gap: 0 6px; align-items: center; padding: 3px 0; font-size: 12px; }
+  .ch .bar { grid-column: 1/3; height: 3px; background: rgba(var(--coffee-rgb), .75); border-radius: 2px; overflow: hidden; } .ch .bar i { display: block; height: 100%; background: var(--cream); width: 0; }
+  .ch .v { text-align: right; font: 12px var(--mono); font-variant-numeric: tabular-nums; color: var(--neo); } .ch .n { color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ch.off .v, .ch.off .n { color: var(--mut); }
+  /* escenario */
+  #stageWrap { position: relative; width: 100%; aspect-ratio: 962/768; background: #000; border-radius: var(--r-l); overflow: hidden; border: 1px solid var(--line-2); touch-action: none; }
+  #vwrap { position: absolute; inset: 0; transform-origin: center; will-change: filter, transform; }
+  #vwrap canvas, #vwrap video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  #vwrap #fx { position: absolute; z-index: 3; left: 12%; top: 13.3%; width: 76.3%; height: 72.2%; pointer-events: none; }
+  #vwrap img#gen { width: 100%; height: 100%; object-fit: cover; display: block; }
+  #tvBackgroundVideo { position: absolute; z-index: 1; left: 12%; top: 13.3%; width: 76.3%; height: 72.2%; object-fit: cover; background: #000; }
+  #tvScreenVideo { position: absolute; z-index: 2; left: 12%; top: 13.3%; width: 76.3%; height: 72.2%; object-fit: cover; background: #000; }
+  #tvControls { position: absolute; z-index: 4; top: 12%; right: 1.8%; width: clamp(36px, 5.5%, 52px); display: grid; gap: clamp(8px, 1.2vw, 14px); }
+  #powerBtn { position: static; width: 100%; height: 40px; min-width: 0; min-height: 40px; padding: 2px; display: grid; place-items: center; color: var(--cream); background: rgba(var(--coffee-rgb),.8); border-color: rgba(var(--cream-rgb),.65); border-radius: 7px; box-shadow: 0 1px 5px rgba(var(--coffee-rgb),.7); }
+  #powerBtn:hover { background: rgba(var(--cream-rgb),.12); border-color: var(--cream); }
+  #powerBtn[aria-pressed="true"] { color: var(--cream); }
+  #powerBtn svg { width: min(2.2vw, 18px); height: min(2.2vw, 18px); }
+  .volumeBtn { position: static; width: 100%; height: 36px; min-width: 0; min-height: 36px; padding: 0; display: grid; place-items: center; color: var(--cream); background: rgba(var(--coffee-rgb),.82); border-color: rgba(var(--cream-rgb),.65); border-radius: 5px; box-shadow: 0 1px 5px rgba(var(--coffee-rgb),.7); font: 700 16px/1 "VolumeFont", var(--mono); }
+  .volumeBtn:hover { background: rgba(var(--cream-rgb),.12); border-color: var(--cream); }
+  .volumeBtn:disabled { opacity: .45; cursor: not-allowed; }
+  #volumeDisplay { position: absolute; z-index: 3; left: 18%; bottom: 17%; width: 64%; display: grid; gap: clamp(2px, .5vw, 6px); color: #53ff6b; font-family: "VolumeFont", var(--mono); text-align: center; pointer-events: none; }
+  #volumeReadout { position: relative; font-size: clamp(14px, 3vw, 32px); font-weight: 900; line-height: 1; letter-spacing: .12em; text-shadow: 0 0 12px #38ff57; }
+  #volumeValue { position: absolute; right: 0; bottom: 0; font-size: clamp(9px, 1.2vw, 13px); letter-spacing: 0; }
+  #volumeBars { width: 100%; height: clamp(14px, 3.5vw, 32px); display: grid; grid-template-columns: repeat(32, minmax(0, 1fr)); gap: clamp(3px, .5vw, 6px); }
+  #volumeBars i { background: rgba(var(--coffee-rgb),.85); box-shadow: 0 0 4px rgba(83,255,107,.18); }
+  #volumeBars i.on { background: #59ff70; box-shadow: 0 0 9px #57ff70; }
+  #overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  #stageHint { position: absolute; left: 14%; bottom: 15%; width: 72%; color: #53ff6b; font-size: clamp(9px, 1.2vw, 12px); text-align: center; pointer-events: none; text-shadow: 0 1px 2px rgba(var(--coffee-rgb),.9); }
+  .srcs { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-3); margin: var(--sp-3) 0; }
+  .srcs .card, #joinBox { padding: var(--sp-3); border-radius: var(--r-m); }
+  .card label { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 13px; } .card label select, .card label input[type=file] { flex: 1; min-width: 0; }
+  #joinBox { display: flex; gap: var(--sp-4); align-items: center; flex-wrap: wrap; }
+  #qr { width: 176px; height: 176px; background: #ffe6a6; border-radius: var(--r-s); padding: 8px; flex: none; }
+  #joinBox #phoneUrl, #joinBox #phoneUrl:link, #joinBox #phoneUrl:visited, #joinBox #phoneUrl:hover, #joinBox #phoneUrl:active {
+    color: #53ff6b;
+  }
+  #phoneLink { color: #53ff6b; word-break: break-all; }
+  #joinBox code { display: block; margin-top: 6px; color: var(--neo); word-break: break-all; font: 12px var(--mono); user-select: all; }
+  #scope { width: 100%; height: 48px; background: var(--bg-2); border-radius: var(--r-s); display: block; margin-top: var(--sp-2); }
+  /* panel de conexiones */
+  .tools { display: flex; gap: 6px; margin-bottom: var(--sp-3); flex-wrap: wrap; position: sticky; top: calc(-1 * var(--sp-3)); background: var(--bg); padding: var(--sp-2) 0; z-index: 1; }
+  .row { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-m); padding: 10px; margin-bottom: 10px; transition: border-color var(--ease), box-shadow var(--ease); }
+  .row:hover { border-color: var(--line-2); }
+  .row.learning { border-color: var(--neo); box-shadow: 0 0 0 1px var(--neo); }
+  .row .r1, .row .r2, .row .r3 { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+  .row .r1 select { flex: 1; min-width: 0; max-width: 190px; } .row .r2 span, .row .r3 span, .row .r3 label { color: var(--mut); font-size: 12px; }
+  .row .r3 label { display: inline-flex; align-items: center; gap: 4px; }
+  .row .r3 .smooth { flex: 1; min-width: 60px; }
+  .row .del, .row .learn { padding: 4px 10px; } .row .del:hover { border-color: var(--err); color: var(--err); }
+  .row .on { flex: none; }
+  .meter { position: relative; height: 18px; background: var(--bg-2); border-radius: 6px; overflow: hidden; border: 1px solid var(--line); }
+  .meter i { position: absolute; left: 0; top: 0; height: 50%; background: var(--vio); width: 0; } .meter i.o { top: 50%; background: var(--neo); }
+  .meter .val { position: absolute; right: 6px; top: 0; font: 11px/18px var(--mono); color: var(--cream); mix-blend-mode: difference; font-variant-numeric: tabular-nums; }
+  .empty { color: var(--mut); padding: var(--sp-3) 0; }
+
+  /* pantallas medianas: se apilan los paneles laterales */
+  @media (max-width: 1180px) { main { grid-template-columns: 220px minmax(0, 1fr); } aside#panel { grid-column: 1/3; border-left: 0; border-top: 1px solid var(--line); } }
+  @media (max-width: 760px) {
+    html, body { height: auto; } main { display: block; }
+    aside#monitor, aside#panel { border: 0; border-top: 1px solid var(--line); overflow: visible; }
+    header { gap: var(--sp-2); } header .sp { display: none; }
+  }
+  #waiting { position: absolute; inset: 13.3% 11.7% 14.5% 12%; display: grid; place-content: center; gap: 6px; min-width: 0; overflow: hidden; text-align: center; padding: clamp(6px, 2vw, 18px); color: #53ff6b; background: rgba(var(--coffee-rgb),.55); backdrop-filter: blur(2px); pointer-events: none; z-index: 2; }
+  #waiting b { font-size: clamp(11px, 1.7vw, 16px); overflow-wrap: anywhere; } #waiting span { color: #53ff6b; font-size: clamp(9px, 1.4vw, 13px); overflow-wrap: anywhere; }
+  #waiting b::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #53ff6b; margin-right: 8px; animation: pulse 1.4s ease-in-out infinite; }
+  .ic { display: inline-block; vertical-align: -2px; }
+  .row.learning .learn { background: var(--neo); color: var(--neo-ink); border-color: var(--neo); animation: pulse-bg 1s ease-in-out infinite alternate; }
+  #audioBtn.primary { animation: pulse-glow 2s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .3; } }
+  @keyframes pulse-bg { to { background: rgba(var(--cream-rgb),.88); } }
+  @keyframes pulse-glow { 50% { box-shadow: 0 0 0 4px rgba(var(--cream-rgb),.25); } }
+  #fsBtn { position: static; top: auto; right: auto; z-index: auto; width: 100%; height: 40px; min-height: 40px; padding: 0; display: grid; place-items: center; background: rgba(var(--coffee-rgb),.6); border-color: var(--line-2); backdrop-filter: blur(4px); transition: opacity 300ms, border-color var(--ease), background var(--ease); }
+  #vid.mirror { transform: scaleX(-1); }
+  #stageWrap:fullscreen, #stageWrap:-webkit-full-screen { width: 100vw; height: 100vh; aspect-ratio: auto; border: 0; border-radius: 0; }
+  #stageWrap.tv-hit { animation: tv-hit 380ms ease-in-out; }
+  @keyframes tv-hit { 20% { transform: translateX(-6px) rotate(-.5deg); } 40% { transform: translateX(6px) rotate(.5deg); } 60% { transform: translateX(-4px) rotate(-.3deg); } 80% { transform: translateX(3px) rotate(.2deg); } }
+  #stageWrap:fullscreen #stageHint, #stageWrap:-webkit-full-screen #stageHint { display: none; }
+  #stageWrap.idle { cursor: none; } #stageWrap.idle #fsBtn { opacity: 0; }
+  #stageWrap:fullscreen #fsBtn .fs-in, #stageWrap:-webkit-full-screen #fsBtn .fs-in { display: none; }
+  #stageWrap:fullscreen #fsBtn .fs-out, #stageWrap:-webkit-full-screen #fsBtn .fs-out { display: inline; }
+  /* física: la imagen se dibuja en WebGL; las fuentes originales quedan invisibles */
+  #vwrap #fx { display: block; }
+  #vwrap:not(.fx) #fx { display: none; }
+  #fxCard { margin-top: var(--sp-3); }
+  #fxMat { display: flex; flex-wrap: wrap; gap: 6px; }
+  #fxMat button { min-height: 36px; padding: 6px 12px; }
+  #fxMat button[aria-pressed="true"] { background: var(--cream); color: var(--coffee); border-color: var(--cream); font-weight: 700; }
+  kbd { font: 10px var(--mono); padding: 1px 5px; border: 1px solid currentColor; border-radius: 4px; opacity: .7; margin-right: 4px; }
+  #fxDesc { margin: 10px 0 6px; color: var(--fg); font-size: 13px; min-height: 1.4em; }
+  #fxSliders { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 4px 16px; }
+  #fxSliders label { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 2px 8px; font-size: 12px; margin: 4px 0; }
+  #fxSliders input { grid-column: 1/3; width: 100%; } #fxSliders output { font: 12px var(--mono); color: var(--cream); grid-row: 1; grid-column: 2; }
+  .fxnote { color: var(--mut); font-size: 12px; margin: 8px 0 0; }
+  #fxToast { position: absolute; left: 18%; bottom: 16%; width: 64%; max-height: 12%; overflow: hidden; transform: none; z-index: 3; color: #53ff6b; background: rgba(var(--coffee-rgb),.75); border: 1px solid var(--line-2); border-radius: 999px; padding: 6px 12px; font-size: clamp(9px, 1.2vw, 13px); font-weight: 600; text-align: center; overflow-wrap: anywhere; opacity: 0; transition: opacity 250ms; pointer-events: none; }
+  #fxToast.on { opacity: 1; }
+  /* Fondo panorámico continuo con los controles distribuidos sobre la repisa */
+  body { position: relative; min-height: 100%; background: #000 url("Fondo largo.jpeg") center / 100% 100% fixed no-repeat; }
+  header { position: relative; z-index: 5; height: 54px; flex-wrap: nowrap; gap: 8px; padding: 6px 12px; overflow: hidden; background: rgba(var(--coffee-rgb), .72); border-bottom-color: rgba(var(--cream-rgb), .3); backdrop-filter: blur(5px); }
+  #brokerInfo, #rtt { display: none; }
+  main {
+    position: absolute; z-index: 1; top: 54px; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: min(100vw, calc((100vh - 54px) * 1.6405229)); aspect-ratio: 1004/612;
+    display: block; min-height: 0; padding: 0; overflow: hidden;
+    background: transparent;
+  }
+  aside, section { overflow: visible; padding: 0; }
+  aside#monitor {
+    position: absolute; z-index: 4; left: 0.5%; top: 1.3%; width: 36%; height: 64.5%;
+    padding: clamp(8px, 1.2vw, 16px); overflow: auto; border: 1px solid rgba(var(--cream-rgb), .4);
+    border-radius: var(--r-m); background: rgba(var(--coffee-rgb), .7); backdrop-filter: blur(3px);
+    scrollbar-color: rgba(var(--cream-rgb), .5) transparent;
+  }
+  aside#monitor h2 { color: var(--cream); }
+  #stageWrap {
+    position: absolute; z-index: 2; left: 41.5%; top: 4.2%; width: 48%; height: auto;
+    aspect-ratio: 962/768; border-color: rgba(var(--coffee-rgb), .55); box-shadow: 0 12px 30px rgba(var(--coffee-rgb), .5);
+  }
+  #center { position: absolute; inset: 0; overflow: visible; padding: 0; pointer-events: none; }
+  #center > * { pointer-events: auto; }
+  #center .srcs {
+    position: absolute; left: 0.5%; bottom: 2%; width: 36%; height: 30%; margin: 0;
+    grid-template-columns: minmax(0, 1fr); overflow: auto;
+  }
+  #center .srcs .card, #fxCard, #joinBox {
+    border-color: rgba(var(--cream-rgb), .42); background: rgba(var(--coffee-rgb), .82);
+    box-shadow: 0 5px 16px rgba(var(--coffee-rgb), .4); backdrop-filter: blur(4px);
+  }
+  #center .srcs .card { min-height: 100%; }
+  #fxCard {
+    position: absolute; left: 42.5%; bottom: 2%; width: 21%; height: 30%;
+    margin: 0; overflow: auto;
+  }
+  #joinBox {
+    position: absolute; left: 65%; bottom: 2%; width: 25%; height: 30%;
+    min-width: 0; overflow: auto; align-content: flex-start; gap: 8px;
+  }
+  #qr { width: clamp(64px, 8vw, 96px); height: auto; padding: 5px; }
+  #joinBox > div { min-width: 0; font-size: 12px; }
+  #phoneUrl { display: block; margin-top: 5px; overflow-wrap: anywhere; }
+  @media (max-width: 760px) {
+    html, body { height: auto; min-height: 100%; }
+    body { background-size: 100% 100%; background-position: center center; }
+    header { position: relative; height: auto; min-height: 54px; flex-wrap: wrap; overflow: visible; }
+    #brokerInfo, #rtt { display: initial; }
+    main { position: relative; inset: auto; left: auto; transform: none; width: auto; height: auto; aspect-ratio: auto; display: flex; flex-direction: column; min-height: 0; padding: var(--sp-3); overflow: visible; gap: var(--sp-3); }
+    aside#monitor, aside#panel { position: static; width: auto; height: auto; max-height: 42vh; overflow: auto; padding: var(--sp-3); border: 1px solid rgba(var(--cream-rgb), .4); }
+    #center { position: static; display: flex; flex-direction: column; gap: var(--sp-3); overflow: visible; }
+    #stageWrap { position: relative; left: auto; top: auto; width: 100%; }
+    #center .srcs, #fxCard, #joinBox { position: static; width: 100%; height: auto; max-height: none; overflow: visible; }
+    #center .srcs .card { min-height: 0; }
+    #joinBox { flex-direction: row; }
+  }
+  .project-name, .project-name * { font-family: "Exo2 Bold", sans-serif; font-weight: 700; }
+  #monitor > h2, #center .srcs .card h2, #fxCard > h2, #joinBox h2 {
+    font-family: "Geist Bold", sans-serif;
+    font-weight: 700;
+  }
+  #volumeDisplay, #volumeDisplay *, #waiting, #waiting * { font-family: "VolumeFont", var(--mono); }
+</style>
+</head>
+<body>
+<header>
+  <b class="project-name">La estática de la nostalgia <span>· experiencia</span></b>
+  <span id="estado" class="dot" role="status" aria-live="polite">● sin conexión</span>
+  <span id="brokerInfo" style="color:var(--mut)"></span>
+  <label style="color:var(--mut)">Teléfono <select id="devSel"><option value="auto">automático</option></select></label>
+  <span id="rtt" title="Latencia teléfono → experiencia" style="color:var(--mut)"></span>
+  <span class="sp"></span>
+  <label style="color:var(--mut)">Sala <input id="salaIn" size="9" autocomplete="off" spellcheck="false"></label>
+  <button id="salaNueva">Nueva</button>
+  <button id="audioBtn" class="primary">Activar audio</button>
+</header>
+<main>
+  <aside id="monitor" aria-label="Entradas"><h2>Entradas</h2><div id="chList"></div></aside>
+
+  <section id="center">
+    <div id="stageWrap">
+      <div id="vwrap"><img id="gen" src="televisor-crt1.png" alt="Televisor CRT" width="962" height="768"><video id="vid" loop muted playsinline hidden></video><canvas id="fx" hidden></canvas></div>
+      <div id="tvControls">
+        <button id="powerBtn" type="button" aria-label="Encender televisor" aria-pressed="false" title="Encender televisor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v10"/><path d="M6.2 5.8a9 9 0 1 0 11.6 0"/></svg></button>
+        <button id="volumeUp" class="volumeBtn" type="button" aria-label="Subir volumen 50%" title="Subir volumen 50%" disabled>+</button>
+        <button id="volumeDown" class="volumeBtn" type="button" aria-label="Bajar volumen 50%" title="Bajar volumen 50%" disabled>−</button>
+        <button id="fsBtn" type="button" aria-label="Pantalla completa" title="Pantalla completa (F)"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="fs-in" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><path class="fs-out" d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" style="display:none"/></svg></button>
+      </div>
+      <video id="tvBackgroundVideo" hidden playsinline preload="auto" aria-hidden="true"></video>
+      <video id="tvScreenVideo" hidden playsinline preload="auto" aria-hidden="true"></video>
+      <audio id="tvStaticAudio" src="Sonido%20estatica.mp3" preload="auto" loop></audio>
+      <div id="volumeDisplay" role="meter" aria-label="Volumen de la estática" aria-valuemin="0" aria-valuemax="200" aria-valuenow="50" hidden>
+        <div id="volumeReadout"><span>VOLUMEN</span><span id="volumeValue">50%</span></div>
+        <div id="volumeBars" aria-hidden="true"></div>
+      </div>
+      <div id="fxToast" role="status" aria-live="polite"></div>
+      <div id="waiting" role="status"><b>Esperando un teléfono…</b><span>Escanea el QR de abajo, o arrastra el ratón sobre la imagen para probar.</span></div>
+      <canvas id="overlay" aria-hidden="true"></canvas>
+      <div id="stageHint">Arrastra aquí con el ratón para probar sin teléfono</div>
+    </div>
+    <div class="srcs">
+      <div class="card" id="audioCard"><h2>Audio</h2>
+        <label>Fuente <select id="aSrc"><option value="osc">Oscilador</option><option value="file">Archivo de audio</option></select></label>
+        <label>Onda <select id="aWave"><option>sawtooth</option><option>triangle</option><option>sine</option><option>square</option></select></label>
+        <label>Archivo <input type="file" id="aFile" accept="audio/*"></label>
+        <canvas id="scope" width="400" height="48" aria-label="Osciloscopio de la salida de audio" role="img"></canvas>
+      </div>
+      <div class="card"><h2>Imagen</h2>
+        <div id="imageSources">
+          <label>Fuente <select id="vSrc"><option value="gen">Televisor CRT</option><option value="file">Archivo de video</option><option value="cam">Cámara web</option></select></label>
+          <label>Archivo <input type="file" id="vFile" accept="video/*"></label>
+          <label><input type="checkbox" id="mirror" checked> Espejo (cámara web)</label>
+        </div>
+        <label><input type="checkbox" id="showTouch" checked> Mostrar los toques del teléfono</label>
+        <label><input type="checkbox" id="mouseDev" checked> Ratón como teléfono (para probar)</label>
+      </div>
+    </div>
+    <div class="card" id="fxCard">
+      <h2>Material</h2>
+      <div id="fxMat" role="group" aria-label="Material">
+        <button type="button" data-m="ninguno" aria-pressed="false">Sin efecto</button>
+        <button type="button" data-m="estatica" aria-pressed="false" title="Ruido y sonido CRT al mover el dedo o el cursor">Electricidad estática CRT</button>
+      </div>
+    </div>
+    <div class="card" id="joinBox">
+      <a id="phoneLink" aria-label="Abrir Tacto en el teléfono" target="_blank" rel="noopener noreferrer"><img id="qr" alt="QR para abrir Tacto en el teléfono" hidden></a>
+      <div><h2>Conectar el teléfono</h2><div>Conecta ambos dispositivos a la misma Wi-Fi y escanea el QR o abre este enlace:</div><a id="phoneUrl" href="#" target="_blank" rel="noopener noreferrer">…</a></div>
+    </div>
+  </section>
+
+  <aside id="panel" aria-label="Conexiones">
+    <h2>Conexiones · entrada → audio / imagen</h2>
+    <div class="tools">
+      <button id="addRow" class="primary"><svg class="ic" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Nueva conexión</button>
+      <button id="expBtn">Exportar</button>
+      <button id="impBtn">Importar</button>
+      <button id="starter">Ejemplo</button>
+      <input type="file" id="impFile" accept="application/json" hidden>
+    </div>
+    <div id="rows" aria-live="polite"></div>
+  </aside>
+</main>
+
+<script src="config.js"></script>
+<script src="tacto.js"></script>
+<script src="fisica.js"></script>
+<script src="exp.js"></script>
+</body>
+</html>
